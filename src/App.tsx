@@ -3,24 +3,58 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { ManagementSystemProvider } from "@/context/ManagementSystemContext";
+import { AppLayout } from "@/components/layout/AppLayout";
+
+// Pages
+import Dashboard from "./pages/Dashboard";
+import ProcessList from "./pages/processes/ProcessList";
+import ProcessForm from "./pages/processes/ProcessForm";
+import ProcessDetail from "./pages/processes/ProcessDetail";
+import IssueList from "./pages/issues/IssueList";
+import IssueForm from "./pages/issues/IssueForm";
+import ActionList from "./pages/actions/ActionList";
+import ActionForm from "./pages/actions/ActionForm";
+import KPIDashboard from "./pages/KPIDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ManagementSystemProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              
+              {/* Processes */}
+              <Route path="/processes" element={<ProcessList />} />
+              <Route path="/processes/new" element={<ProcessForm />} />
+              <Route path="/processes/:id" element={<ProcessDetail />} />
+              <Route path="/processes/:id/edit" element={<ProcessForm />} />
+              
+              {/* Issues (Context Analysis) */}
+              <Route path="/issues" element={<IssueList />} />
+              <Route path="/issues/new" element={<IssueForm />} />
+              
+              {/* Actions */}
+              <Route path="/actions" element={<ActionList />} />
+              <Route path="/actions/new" element={<ActionForm />} />
+              
+              {/* KPI Dashboard (Planned) */}
+              <Route path="/kpi" element={<KPIDashboard />} />
+            </Route>
+            
+            {/* 404 */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ManagementSystemProvider>
   </QueryClientProvider>
 );
 
