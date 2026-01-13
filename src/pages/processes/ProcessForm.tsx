@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useManagementSystem } from "@/context/ManagementSystemContext";
-import { ProcessStatus, ProcessType, ProcessActivity } from "@/types/management-system";
-import { Plus, X, GripVertical, Settings, Cog, Wrench } from "lucide-react";
+import { ProcessStatus, ProcessType, ProcessActivity, ApplicableRegulation } from "@/types/management-system";
+import { Plus, X, GripVertical, Settings, Cog, Wrench, Scale, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -35,10 +35,11 @@ const PROCESS_TYPES: { value: ProcessType; label: string; description: string; i
 export default function ProcessForm() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { createProcess, updateProcess, getProcessById } = useManagementSystem();
+  const { createProcess, updateProcess, getProcessById, getDocumentsByProcess } = useManagementSystem();
   
   const existingProcess = id ? getProcessById(id) : undefined;
   const isEditing = !!existingProcess;
+  const linkedDocuments = existingProcess ? getDocumentsByProcess(existingProcess.id) : [];
 
   const [formData, setFormData] = useState({
     name: existingProcess?.name || "",
@@ -47,6 +48,7 @@ export default function ProcessForm() {
     inputs: existingProcess?.inputs || [""],
     outputs: existingProcess?.outputs || [""],
     activities: existingProcess?.activities || [] as ProcessActivity[],
+    regulations: existingProcess?.regulations || [] as ApplicableRegulation[],
     pilotName: existingProcess?.pilotName || "",
     status: existingProcess?.status || "draft" as ProcessStatus,
   });
@@ -69,6 +71,7 @@ export default function ProcessForm() {
     const cleanedInputs = formData.inputs.filter(i => i.trim());
     const cleanedOutputs = formData.outputs.filter(o => o.trim());
     const cleanedActivities = formData.activities.filter(a => a.name.trim());
+    const cleanedRegulations = formData.regulations.filter(r => r.reference.trim() || r.name.trim());
 
     if (cleanedInputs.length === 0) {
       toast.error("At least one input is required");
@@ -87,6 +90,7 @@ export default function ProcessForm() {
         inputs: cleanedInputs,
         outputs: cleanedOutputs,
         activities: cleanedActivities.map((a, i) => ({ ...a, sequence: i + 1 })),
+        regulations: cleanedRegulations,
         pilotName: formData.pilotName.trim() || undefined,
         status: formData.status,
       }, revisionNote || "Process updated");
@@ -99,6 +103,7 @@ export default function ProcessForm() {
         inputs: cleanedInputs,
         outputs: cleanedOutputs,
         activities: cleanedActivities.map((a, i) => ({ ...a, sequence: i + 1 })),
+        regulations: cleanedRegulations,
         pilotName: formData.pilotName.trim() || undefined,
         status: formData.status,
         standard: "ISO_9001",
@@ -167,6 +172,33 @@ export default function ProcessForm() {
       ...prev,
       activities: prev.activities.map((activity, i) => 
         i === index ? { ...activity, [field]: value } : activity
+      ),
+    }));
+  };
+
+  const addRegulation = () => {
+    const newRegulation: ApplicableRegulation = {
+      id: crypto.randomUUID(),
+      reference: "",
+      name: "",
+      description: "",
+      complianceDisposition: "",
+    };
+    setFormData(prev => ({ ...prev, regulations: [...prev.regulations, newRegulation] }));
+  };
+
+  const removeRegulation = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      regulations: prev.regulations.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateRegulation = (index: number, field: keyof ApplicableRegulation, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      regulations: prev.regulations.map((reg, i) => 
+        i === index ? { ...reg, [field]: value } : reg
       ),
     }));
   };
@@ -395,6 +427,127 @@ export default function ProcessForm() {
           <p className="form-helper">
             Define the sequential activities that compose this process. Activities describe the work performed, in order.
           </p>
+        </div>
+
+        {/* Applicable Regulations */}
+        <div className="form-field">
+          <div className="flex items-center gap-2 mb-2">
+            <Scale className="w-4 h-4 text-muted-foreground" />
+            <Label>Applicable Regulations</Label>
+          </div>
+          <div className="space-y-3">
+            {formData.regulations.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic py-2">
+                No regulations defined yet. Add legal and regulatory requirements applicable to this process.
+              </p>
+            ) : (
+              formData.regulations.map((regulation, index) => (
+                <div 
+                  key={regulation.id} 
+                  className="p-3 bg-muted/50 rounded-lg border border-border space-y-2"
+                >
+                  <div className="flex gap-2">
+                    <Input
+                      value={regulation.reference}
+                      onChange={(e) => updateRegulation(index, "reference", e.target.value)}
+                      placeholder="e.g., Regulation (EU) 2016/679"
+                      className="bg-background font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeRegulation(index)}
+                      className="shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    value={regulation.name}
+                    onChange={(e) => updateRegulation(index, "name", e.target.value)}
+                    placeholder="e.g., GDPR - General Data Protection Regulation"
+                    className="bg-background"
+                  />
+                  <Textarea
+                    value={regulation.complianceDisposition || ""}
+                    onChange={(e) => updateRegulation(index, "complianceDisposition", e.target.value)}
+                    placeholder="How does the organization address this requirement?"
+                    rows={2}
+                    className="bg-background text-sm"
+                  />
+                </div>
+              ))
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addRegulation}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Regulation
+            </Button>
+          </div>
+          <p className="form-helper">
+            Identify applicable legal, regulatory, and statutory requirements. Define how compliance is ensured.
+          </p>
+        </div>
+
+        {/* Utilized Documentation (Read-only display) */}
+        <div className="form-field">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <Label>Utilized Documentation</Label>
+          </div>
+          {linkedDocuments.length === 0 ? (
+            <div className="p-4 bg-muted/30 rounded-lg border border-dashed border-border">
+              <p className="text-sm text-muted-foreground text-center">
+                No documents linked to this process yet.
+              </p>
+              <p className="text-xs text-muted-foreground text-center mt-1">
+                Documents can be created and linked via the Documents module.
+              </p>
+              {isEditing && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate("/documents/new")}
+                  className="w-full mt-3"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Document
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {linkedDocuments.map((doc) => (
+                <div 
+                  key={doc.id}
+                  className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border"
+                >
+                  <FileText className="w-4 h-4 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{doc.title}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{doc.code}</p>
+                  </div>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/documents/new")}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Document
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Pilot */}

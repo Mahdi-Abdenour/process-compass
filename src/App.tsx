@@ -15,6 +15,9 @@ import IssueList from "./pages/issues/IssueList";
 import IssueForm from "./pages/issues/IssueForm";
 import ActionList from "./pages/actions/ActionList";
 import ActionForm from "./pages/actions/ActionForm";
+import DocumentList from "./pages/documents/DocumentList";
+import DocumentForm from "./pages/documents/DocumentForm";
+import DocumentDetail from "./pages/documents/DocumentDetail";
 import KPIDashboard from "./pages/KPIDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -44,6 +47,12 @@ const App = () => (
               {/* Actions */}
               <Route path="/actions" element={<ActionList />} />
               <Route path="/actions/new" element={<ActionForm />} />
+
+              {/* Documents */}
+              <Route path="/documents" element={<DocumentList />} />
+              <Route path="/documents/new" element={<DocumentForm />} />
+              <Route path="/documents/:id" element={<DocumentDetail />} />
+              <Route path="/documents/:id/edit" element={<DocumentForm />} />
               
               {/* KPI Dashboard (Planned) */}
               <Route path="/kpi" element={<KPIDashboard />} />

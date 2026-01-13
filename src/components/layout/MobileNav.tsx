@@ -4,7 +4,7 @@ import {
   Workflow, 
   AlertTriangle, 
   CheckSquare, 
-  BarChart3 
+  FileText 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ const navItems: NavItem[] = [
   { path: "/processes", label: "Processes", icon: Workflow, isActive: true },
   { path: "/issues", label: "Issues", icon: AlertTriangle, isActive: true },
   { path: "/actions", label: "Actions", icon: CheckSquare, isActive: true },
-  { path: "/kpi", label: "KPIs", icon: BarChart3, isActive: false },
+  { path: "/documents", label: "Docs", icon: FileText, isActive: true },
 ];
 
 export function MobileNav() {

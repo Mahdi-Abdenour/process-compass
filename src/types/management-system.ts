@@ -19,6 +19,36 @@ export interface ProcessActivity {
   sequence: number;
 }
 
+// Applicable Regulation (per process)
+export interface ApplicableRegulation {
+  id: string;
+  reference: string; // e.g., "Regulation (EU) 2016/679"
+  name: string; // e.g., "GDPR - General Data Protection Regulation"
+  description?: string;
+  complianceDisposition?: string; // How the organization addresses this requirement
+}
+
+// Document Type
+export type DocumentType = 'procedure' | 'form' | 'instruction' | 'record' | 'policy';
+
+// ISO 9001 Clause Reference
+export interface ISOClauseReference {
+  clauseNumber: string; // e.g., "7.5.1"
+  clauseTitle: string; // e.g., "Documented Information - General"
+}
+
+// Document (Procedure, Form, etc.)
+export interface Document extends BaseEntity, Versionable {
+  code: string; // e.g., "DOC-001"
+  title: string;
+  type: DocumentType;
+  description?: string;
+  processIds: string[]; // Processes this document applies to
+  isoClauseReferences: ISOClauseReference[]; // ISO 9001 requirements satisfied
+  standard: ManagementStandard;
+  status: 'draft' | 'active' | 'archived';
+}
+
 // Versioning interface - all major entities must implement this
 export interface Versionable {
   version: number;
@@ -43,6 +73,7 @@ export interface Process extends BaseEntity, Versionable {
   inputs: string[];
   outputs: string[];
   activities: ProcessActivity[]; // Ordered list of process activities
+  regulations: ApplicableRegulation[]; // Applicable legal/regulatory requirements
   pilotId?: string; // Owner/pilot user ID
   pilotName?: string;
   status: ProcessStatus;
@@ -53,6 +84,7 @@ export interface Process extends BaseEntity, Versionable {
   opportunityIds: string[];
   actionIds: string[];
   auditIds: string[];
+  documentIds: string[]; // Utilized documentation
 }
 
 // Context Issue (Risk or Opportunity from SWOT analysis)

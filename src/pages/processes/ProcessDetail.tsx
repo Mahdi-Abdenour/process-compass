@@ -9,7 +9,9 @@ import {
   Settings,
   Cog,
   Wrench,
-  ListOrdered
+  ListOrdered,
+  Scale,
+  FileText
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -29,7 +31,7 @@ const PROCESS_TYPE_CONFIG: Record<ProcessType, { label: string; icon: React.Elem
 export default function ProcessDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProcessById, archiveProcess, getIssuesByProcess, getActionsByProcess } = useManagementSystem();
+  const { getProcessById, archiveProcess, getIssuesByProcess, getActionsByProcess, getDocumentsByProcess } = useManagementSystem();
   
   const process = id ? getProcessById(id) : undefined;
 
@@ -43,6 +45,7 @@ export default function ProcessDetail() {
 
   const issues = getIssuesByProcess(process.id);
   const actions = getActionsByProcess(process.id);
+  const documents = getDocumentsByProcess(process.id);
   const risks = issues.filter(i => i.type === "risk");
   const opportunities = issues.filter(i => i.type === "opportunity");
 
@@ -160,6 +163,65 @@ export default function ProcessDetail() {
           </section>
         )}
 
+        {/* Applicable Regulations */}
+        {process.regulations && process.regulations.length > 0 && (
+          <section className="mobile-card">
+            <div className="flex items-center gap-2 mb-3">
+              <Scale className="w-4 h-4 text-amber-600" />
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                Applicable Regulations
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {process.regulations.map((regulation) => (
+                <div key={regulation.id} className="p-3 bg-muted/30 rounded-lg border border-border">
+                  <p className="font-mono text-xs text-primary font-medium">
+                    {regulation.reference}
+                  </p>
+                  <p className="font-medium mt-1">{regulation.name}</p>
+                  {regulation.complianceDisposition && (
+                    <p className="text-sm text-muted-foreground mt-2 pt-2 border-t border-border">
+                      <span className="font-medium">Compliance disposition:</span> {regulation.complianceDisposition}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Utilized Documentation */}
+        <section className="mobile-card">
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="w-4 h-4 text-blue-600" />
+            <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Utilized Documentation
+            </h3>
+          </div>
+          {documents.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              No documents linked to this process yet.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {documents.map((doc) => (
+                <li key={doc.id}>
+                  <button
+                    onClick={() => navigate(`/documents/${doc.id}`)}
+                    className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-muted/50 text-left transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{doc.code}</p>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         {/* Pilot */}
         {process.pilotName && (
           <section className="mobile-card">
@@ -205,11 +267,11 @@ export default function ProcessDetail() {
               onClick={() => navigate(`/actions?process=${process.id}`)}
             />
             <LinkedItemCard
-              icon={BarChart3}
-              label="Indicators"
-              count={process.indicatorIds.length}
-              color="text-kpi"
-              disabled
+              icon={FileText}
+              label="Documents"
+              count={documents.length}
+              color="text-blue-600"
+              onClick={() => navigate(`/documents`)}
             />
           </div>
         </section>
@@ -231,6 +293,14 @@ export default function ProcessDetail() {
           >
             <CheckSquare className="w-4 h-4 mr-2" />
             Create Action
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => navigate(`/documents/new`)}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Create Document
           </Button>
         </section>
       </div>
