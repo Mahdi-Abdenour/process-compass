@@ -1,41 +1,50 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Workflow, ArrowRight, Settings, Cog, Wrench, Scale } from "lucide-react";
+import { FileText, ArrowRight, FileCheck, ClipboardList, BookOpen, ScrollText } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Fab } from "@/components/ui/fab";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { useManagementSystem } from "@/context/ManagementSystemContext";
 import { cn } from "@/lib/utils";
-import { ProcessType } from "@/types/management-system";
+import { DocumentType } from "@/types/management-system";
 
-const PROCESS_TYPE_CONFIG: Record<ProcessType, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
-  management: { label: "Mgmt", icon: Settings, color: "text-purple-600", bgColor: "bg-purple-100" },
-  operational: { label: "Oper", icon: Cog, color: "text-process", bgColor: "bg-blue-100" },
-  support: { label: "Supp", icon: Wrench, color: "text-amber-600", bgColor: "bg-amber-100" },
+const DOCUMENT_TYPE_CONFIG: Record<DocumentType, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
+  procedure: { label: "Procedure", icon: FileCheck, color: "text-blue-600", bgColor: "bg-blue-100" },
+  form: { label: "Form", icon: ClipboardList, color: "text-green-600", bgColor: "bg-green-100" },
+  instruction: { label: "Instruction", icon: BookOpen, color: "text-purple-600", bgColor: "bg-purple-100" },
+  record: { label: "Record", icon: ScrollText, color: "text-amber-600", bgColor: "bg-amber-100" },
+  policy: { label: "Policy", icon: FileText, color: "text-red-600", bgColor: "bg-red-100" },
 };
 
-export default function ProcessList() {
+export default function DocumentList() {
   const navigate = useNavigate();
-  const { processes } = useManagementSystem();
+  const { documents, processes } = useManagementSystem();
   const [filter, setFilter] = useState<"all" | "active" | "draft">("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | ProcessType>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | DocumentType>("all");
 
-  const filteredProcesses = processes.filter((p) => {
-    if (p.status === "archived") return false;
-    if (filter !== "all" && p.status !== filter) return false;
-    if (typeFilter !== "all" && p.type !== typeFilter) return false;
+  const filteredDocuments = documents.filter((d) => {
+    if (d.status === "archived") return false;
+    if (filter !== "all" && d.status !== filter) return false;
+    if (typeFilter !== "all" && d.type !== typeFilter) return false;
     return true;
   });
+
+  const getProcessNames = (processIds: string[]) => {
+    return processIds
+      .map(id => processes.find(p => p.id === id)?.name)
+      .filter(Boolean)
+      .join(", ");
+  };
 
   return (
     <div className="min-h-screen">
       <PageHeader 
-        title="Processes" 
-        subtitle="Fiche Processus — ISO 9001"
+        title="Documents" 
+        subtitle="Procedures & Forms — ISO 9001"
       />
 
-      {processes.length > 0 && (
+      {documents.length > 0 && (
         <div className="section-header border-b-0 space-y-3">
           {/* Status Filter */}
           <div className="flex gap-2">
@@ -60,7 +69,7 @@ export default function ProcessList() {
           </div>
           
           {/* Type Filter */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <FilterButton 
               active={typeFilter === "all"} 
               onClick={() => setTypeFilter("all")}
@@ -69,62 +78,62 @@ export default function ProcessList() {
               All Types
             </FilterButton>
             <FilterButton 
-              active={typeFilter === "management"} 
-              onClick={() => setTypeFilter("management")}
+              active={typeFilter === "procedure"} 
+              onClick={() => setTypeFilter("procedure")}
               variant="secondary"
             >
-              <Settings className="w-3.5 h-3.5 mr-1" />
-              Mgmt
+              <FileCheck className="w-3.5 h-3.5 mr-1" />
+              Proc
             </FilterButton>
             <FilterButton 
-              active={typeFilter === "operational"} 
-              onClick={() => setTypeFilter("operational")}
+              active={typeFilter === "form"} 
+              onClick={() => setTypeFilter("form")}
               variant="secondary"
             >
-              <Cog className="w-3.5 h-3.5 mr-1" />
-              Oper
+              <ClipboardList className="w-3.5 h-3.5 mr-1" />
+              Form
             </FilterButton>
             <FilterButton 
-              active={typeFilter === "support"} 
-              onClick={() => setTypeFilter("support")}
+              active={typeFilter === "instruction"} 
+              onClick={() => setTypeFilter("instruction")}
               variant="secondary"
             >
-              <Wrench className="w-3.5 h-3.5 mr-1" />
-              Supp
+              <BookOpen className="w-3.5 h-3.5 mr-1" />
+              Instr
             </FilterButton>
           </div>
         </div>
       )}
 
       <div className="px-4 py-4 space-y-3">
-        {filteredProcesses.length === 0 ? (
+        {filteredDocuments.length === 0 ? (
           <EmptyState
-            icon={Workflow}
-            title="No processes defined"
-            description="Processes are the backbone of your management system. Start by defining your key organizational processes."
-            actionLabel="Create First Process"
-            onAction={() => navigate("/processes/new")}
-            helperText="Each process will have inputs, outputs, a pilot, and linked indicators, risks, and actions."
+            icon={FileText}
+            title="No documents defined"
+            description="Documents describe procedures, forms, and instructions that support your processes and satisfy ISO requirements."
+            actionLabel="Create First Document"
+            onAction={() => navigate("/documents/new")}
+            helperText="Each document links to processes and references specific ISO 9001 clauses."
           />
         ) : (
-          filteredProcesses.map((process) => {
-            const typeConfig = PROCESS_TYPE_CONFIG[process.type];
+          filteredDocuments.map((document) => {
+            const typeConfig = DOCUMENT_TYPE_CONFIG[document.type];
             const TypeIcon = typeConfig.icon;
-            const regulationsCount = process.regulations?.length || 0;
+            const processNames = getProcessNames(document.processIds);
             
             return (
               <button
-                key={process.id}
-                onClick={() => navigate(`/processes/${process.id}`)}
+                key={document.id}
+                onClick={() => navigate(`/documents/${document.id}`)}
                 className="process-card w-full text-left"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-mono text-xs text-process font-medium">
-                        {process.code}
+                      <span className="font-mono text-xs text-primary font-medium">
+                        {document.code}
                       </span>
-                      <StatusBadge status={process.status} />
+                      <StatusBadge status={document.status} />
                       <div className={cn(
                         "flex items-center gap-1 px-1.5 py-0.5 rounded text-xs",
                         typeConfig.bgColor,
@@ -134,13 +143,15 @@ export default function ProcessList() {
                         <span className="font-medium">{typeConfig.label}</span>
                       </div>
                     </div>
-                    <h3 className="font-semibold truncate">{process.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {process.purpose}
-                    </p>
-                    {process.pilotName && (
+                    <h3 className="font-semibold truncate">{document.title}</h3>
+                    {document.description && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                        {document.description}
+                      </p>
+                    )}
+                    {processNames && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        Pilot: {process.pilotName}
+                        Processes: {processNames}
                       </p>
                     )}
                   </div>
@@ -148,16 +159,8 @@ export default function ProcessList() {
                 </div>
                 
                 <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border">
-                  <StatChip label="Activities" value={process.activities?.length || 0} />
-                  <StatChip label="Risks" value={process.riskIds.length} />
-                  <StatChip label="Actions" value={process.actionIds.length} />
-                  {regulationsCount > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <Scale className="w-3.5 h-3.5 text-amber-600" />
-                      <span className="font-mono text-sm font-medium">{regulationsCount}</span>
-                      <span className="text-xs text-muted-foreground">Regs</span>
-                    </div>
-                  )}
+                  <StatChip label="Processes" value={document.processIds.length} />
+                  <StatChip label="ISO Clauses" value={document.isoClauseReferences.length} />
                 </div>
               </button>
             );
@@ -165,7 +168,7 @@ export default function ProcessList() {
         )}
       </div>
 
-      <Fab onClick={() => navigate("/processes/new")} label="Create process" />
+      <Fab onClick={() => navigate("/documents/new")} label="Create document" />
     </div>
   );
 }
