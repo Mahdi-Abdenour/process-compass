@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useEffect } from "react";
 import { useProcesses } from "@/hooks/useProcesses";
 import { useContextIssues } from "@/hooks/useContextIssues";
 import { useActions } from "@/hooks/useActions";
@@ -6,7 +6,8 @@ import { useDocuments } from "@/hooks/useDocuments";
 import { useLeadershipElements } from "@/hooks/useLeadershipElements";
 import { useObjectives } from "@/hooks/useObjectives";
 import { useKPIs } from "@/hooks/useKPIs";
-import { ManagementStandard } from "@/types/management-system";
+import { useFunctionInstances } from "@/hooks/useFunctionInstances";
+import { ManagementStandard, Process } from "@/types/management-system";
 
 interface ManagementSystemContextType {
   // Current standard
@@ -90,6 +91,19 @@ interface ManagementSystemContextType {
   getKPIsByObjective: ReturnType<typeof useKPIs>["getKPIsByObjective"];
   getCurrentKPIValue: ReturnType<typeof useKPIs>["getCurrentValue"];
   getKPIValueHistory: ReturnType<typeof useKPIs>["getValueHistory"];
+
+  // Function Instances
+  functionInstances: ReturnType<typeof useFunctionInstances>["functionInstances"];
+  getFunctionInstancesByProcess: ReturnType<typeof useFunctionInstances>["getInstancesByProcess"];
+  getFunctionInstanceById: ReturnType<typeof useFunctionInstances>["getInstanceById"];
+  createFunctionInstance: ReturnType<typeof useFunctionInstances>["createInstance"];
+  updateFunctionInstanceData: ReturnType<typeof useFunctionInstances>["updateInstanceData"];
+  updateFunctionInstanceStatus: ReturnType<typeof useFunctionInstances>["updateInstanceStatus"];
+  addFunctionEvidence: ReturnType<typeof useFunctionInstances>["addEvidence"];
+  linkActionToFunction: ReturnType<typeof useFunctionInstances>["linkAction"];
+  getApplicableFunctions: ReturnType<typeof useFunctionInstances>["getApplicableFunctions"];
+  getUniqueFunctionsStatus: ReturnType<typeof useFunctionInstances>["getUniqueFunctionsStatus"];
+  syncFunctionsForProcess: ReturnType<typeof useFunctionInstances>["syncFunctionsForProcess"];
 }
 
 const ManagementSystemContext = createContext<ManagementSystemContextType | null>(null);
@@ -102,6 +116,14 @@ export function ManagementSystemProvider({ children }: { children: ReactNode }) 
   const leadershipHook = useLeadershipElements();
   const objectivesHook = useObjectives();
   const kpisHook = useKPIs();
+  const functionInstancesHook = useFunctionInstances();
+
+  // Auto-sync functions when processes change
+  useEffect(() => {
+    processesHook.processes.forEach(process => {
+      functionInstancesHook.syncFunctionsForProcess(process);
+    });
+  }, [processesHook.processes]);
 
   const value: ManagementSystemContextType = {
     currentStandard: "ISO_9001",
@@ -184,6 +206,19 @@ export function ManagementSystemProvider({ children }: { children: ReactNode }) 
     getKPIsByObjective: kpisHook.getKPIsByObjective,
     getCurrentKPIValue: kpisHook.getCurrentValue,
     getKPIValueHistory: kpisHook.getValueHistory,
+
+    // Function Instances
+    functionInstances: functionInstancesHook.functionInstances,
+    getFunctionInstancesByProcess: functionInstancesHook.getInstancesByProcess,
+    getFunctionInstanceById: functionInstancesHook.getInstanceById,
+    createFunctionInstance: functionInstancesHook.createInstance,
+    updateFunctionInstanceData: functionInstancesHook.updateInstanceData,
+    updateFunctionInstanceStatus: functionInstancesHook.updateInstanceStatus,
+    addFunctionEvidence: functionInstancesHook.addEvidence,
+    linkActionToFunction: functionInstancesHook.linkAction,
+    getApplicableFunctions: functionInstancesHook.getApplicableFunctions,
+    getUniqueFunctionsStatus: functionInstancesHook.getUniqueFunctionsStatus,
+    syncFunctionsForProcess: functionInstancesHook.syncFunctionsForProcess,
   };
 
   return (
