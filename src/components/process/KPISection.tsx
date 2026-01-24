@@ -10,7 +10,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { ProcessKPI, KPIFrequency, KPI_FREQUENCY_LABELS } from "@/types/objectives";
+import { ProcessKPI, KPIFrequency } from "@/types/objectives";
 import { useManagementSystem } from "@/context/ManagementSystemContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -20,6 +20,12 @@ interface KPISectionProps {
   processId: string;
   isEditing: boolean;
 }
+
+const FREQUENCY_LABELS: Record<KPIFrequency, string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  semestrially: "Semestrially",
+};
 
 export function KPISection({ processId, isEditing }: KPISectionProps) {
   const { 
@@ -158,7 +164,7 @@ export function KPISection({ processId, isEditing }: KPISectionProps) {
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                       <span className="text-xs px-2 py-0.5 rounded-full bg-kpi/10 text-kpi">
-                        {KPI_FREQUENCY_LABELS[kpi.frequency]}
+                        {FREQUENCY_LABELS[kpi.frequency]}
                       </span>
                     </div>
                   </div>
@@ -317,9 +323,7 @@ export function KPISection({ processId, isEditing }: KPISectionProps) {
                 <SelectContent>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
                   <SelectItem value="semestrially">Semestrially</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
                 </SelectContent>
               </Select>
             </div>

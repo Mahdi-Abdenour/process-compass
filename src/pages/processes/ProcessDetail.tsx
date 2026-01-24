@@ -22,7 +22,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ProcessType } from "@/types/management-system";
 import { cn } from "@/lib/utils";
-import { ApplicableFunctionsSection } from "@/components/process/ApplicableFunctionsSection";
 
 const PROCESS_TYPE_CONFIG: Record<ProcessType, { label: string; icon: React.ElementType; color: string }> = {
   management: { label: "Management", icon: Settings, color: "text-purple-600" },
@@ -279,9 +278,6 @@ export default function ProcessDetail() {
             </div>
           </section>
         )}
-
-        {/* Applicable Functions - ISO 9001 Standard Functions */}
-        <ApplicableFunctionsSection process={process} />
 
         {/* Pilot */}
         {process.pilotName && (

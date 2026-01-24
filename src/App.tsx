@@ -21,8 +21,6 @@ import DocumentList from "./pages/documents/DocumentList";
 import DocumentForm from "./pages/documents/DocumentForm";
 import DocumentDetail from "./pages/documents/DocumentDetail";
 import KPIDashboard from "./pages/KPIDashboard";
-import FunctionInstanceDetail from "./pages/functions/FunctionInstanceDetail";
-import ComplianceDashboard from "./pages/compliance/ComplianceDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,13 +60,7 @@ const App = () => (
               <Route path="/documents/:id" element={<DocumentDetail />} />
               <Route path="/documents/:id/edit" element={<DocumentForm />} />
               
-              {/* Functions */}
-              <Route path="/functions/:id" element={<FunctionInstanceDetail />} />
-
-              {/* Compliance Dashboard */}
-              <Route path="/compliance" element={<ComplianceDashboard />} />
-              
-              {/* KPI Dashboard (Legacy - redirects to Compliance) */}
+              {/* KPI Dashboard (Planned) */}
               <Route path="/kpi" element={<KPIDashboard />} />
             </Route>
             

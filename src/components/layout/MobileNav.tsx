@@ -4,7 +4,7 @@ import {
   Workflow, 
   AlertTriangle, 
   CheckSquare, 
-  FileCheck,
+  FileText 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,11 +15,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: "/", label: "Home", icon: LayoutDashboard },
+  { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/processes", label: "Processes", icon: Workflow },
   { path: "/issues", label: "Issues", icon: AlertTriangle },
   { path: "/actions", label: "Actions", icon: CheckSquare },
-  { path: "/compliance", label: "Compliance", icon: FileCheck },
+  { path: "/documents", label: "Docs", icon: FileText },
 ];
 
 export function MobileNav() {
