@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+ import { useState } from "react";
+ import { useParams, useNavigate } from "react-router-dom";
+ import { useScrollReset } from "@/hooks/useScrollReset";
 import { Edit, Clock, AlertCircle, CheckCircle, XCircle, History, Link as LinkIcon, Play, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -43,7 +44,10 @@ export default function ActionDetail() {
   const [evalEvidence, setEvalEvidence] = useState("");
   const [evalNotes, setEvalNotes] = useState("");
 
-  const action = actions.find(a => a.id === id);
+   const action = actions.find(a => a.id === id);
+ 
+   // Reset scroll position to top when opening detail view
+   useScrollReset();
 
   if (!action) {
     return (

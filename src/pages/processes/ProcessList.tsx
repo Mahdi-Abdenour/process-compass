@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Workflow, ArrowRight, Settings, Cog, Wrench, Scale } from "lucide-react";
+ import { useState, useMemo, useCallback } from "react";
+ import { useNavigate, useSearchParams } from "react-router-dom";
+ import { Workflow, ArrowRight, Settings, Cog, Wrench, Scale } from "lucide-react";
+ import { FilterBar, FilterConfig } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AdaptiveContainer } from "@/components/layout/AdaptiveContainer";
 import { AdaptiveGrid } from "@/components/layout/AdaptiveGrid";
@@ -18,19 +19,75 @@ const PROCESS_TYPE_CONFIG: Record<ProcessType, { label: string; icon: React.Elem
   support: { label: "Supp", icon: Wrench, color: "text-amber-600", bgColor: "bg-amber-100" },
 };
 
-export default function ProcessList() {
-  const navigate = useNavigate();
-  const { processes } = useManagementSystem();
-  const [filter, setFilter] = useState<"all" | "active" | "draft">("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | ProcessType>("all");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-
-  const filteredProcesses = processes.filter((p) => {
-    if (p.status === "archived") return false;
-    if (filter !== "all" && p.status !== filter) return false;
-    if (typeFilter !== "all" && p.type !== typeFilter) return false;
-    return true;
-  });
+ export default function ProcessList() {
+   const navigate = useNavigate();
+   const [searchParams, setSearchParams] = useSearchParams();
+   const { processes } = useManagementSystem();
+   const [showCreateDialog, setShowCreateDialog] = useState(false);
+ 
+   // Get filter values from URL params (for deep linking from Dashboard)
+   const statusParam = searchParams.get("status") || "all";
+   const typeParam = searchParams.get("type") || "all";
+   const searchParam = searchParams.get("q") || "";
+ 
+   const [filterValues, setFilterValues] = useState<Record<string, string>>({
+     status: statusParam,
+     type: typeParam,
+   });
+   const [searchValue, setSearchValue] = useState(searchParam);
+ 
+   // Filter configurations
+   const filterConfigs: FilterConfig[] = useMemo(() => [
+     {
+       id: "status",
+       label: "Status",
+       options: [
+         { value: "all", label: "All" },
+         { value: "draft", label: "Draft" },
+         { value: "active", label: "Active" },
+         { value: "archived", label: "Archived" },
+       ],
+       defaultValue: "all",
+     },
+     {
+       id: "type",
+       label: "Type",
+       options: [
+         { value: "all", label: "All Types" },
+         { value: "management", label: "Management", icon: <Settings className="w-3.5 h-3.5" /> },
+         { value: "operational", label: "Operational", icon: <Cog className="w-3.5 h-3.5" /> },
+         { value: "support", label: "Support", icon: <Wrench className="w-3.5 h-3.5" /> },
+       ],
+       defaultValue: "all",
+     },
+   ], []);
+ 
+   const handleFilterChange = useCallback((filterId: string, value: string) => {
+     setFilterValues(prev => ({ ...prev, [filterId]: value }));
+   }, []);
+ 
+   const handleClearAll = useCallback(() => {
+     setFilterValues({ status: "all", type: "all" });
+     setSearchValue("");
+     setSearchParams({});
+   }, [setSearchParams]);
+ 
+   const filteredProcesses = useMemo(() => {
+     return processes.filter((p) => {
+       // Status filter
+       if (filterValues.status !== "all" && p.status !== filterValues.status) return false;
+       // Type filter
+       if (filterValues.type !== "all" && p.type !== filterValues.type) return false;
+       // Search filter
+       if (searchValue) {
+         const query = searchValue.toLowerCase();
+         if (!p.name.toLowerCase().includes(query) && !p.code.toLowerCase().includes(query)) {
+           return false;
+         }
+       }
+       return true;
+     });
+   }, [processes, filterValues, searchValue]);
 
   return (
     <div className="min-h-screen">
@@ -39,66 +96,16 @@ export default function ProcessList() {
         subtitle="Fiche Processus — ISO 9001"
       />
 
-      {processes.length > 0 && (
-        <AdaptiveContainer padding="default" className="py-3 space-y-3 border-b border-border">
-          {/* Status Filter */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            <FilterButton 
-              active={filter === "all"} 
-              onClick={() => setFilter("all")}
-            >
-              All
-            </FilterButton>
-            <FilterButton 
-              active={filter === "active"} 
-              onClick={() => setFilter("active")}
-            >
-              Active
-            </FilterButton>
-            <FilterButton 
-              active={filter === "draft"} 
-              onClick={() => setFilter("draft")}
-            >
-              Draft
-            </FilterButton>
-          </div>
-          
-          {/* Type Filter */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            <FilterButton 
-              active={typeFilter === "all"} 
-              onClick={() => setTypeFilter("all")}
-              variant="secondary"
-            >
-              All Types
-            </FilterButton>
-            <FilterButton 
-              active={typeFilter === "management"} 
-              onClick={() => setTypeFilter("management")}
-              variant="secondary"
-            >
-              <Settings className="w-3.5 h-3.5 mr-1" />
-              Mgmt
-            </FilterButton>
-            <FilterButton 
-              active={typeFilter === "operational"} 
-              onClick={() => setTypeFilter("operational")}
-              variant="secondary"
-            >
-              <Cog className="w-3.5 h-3.5 mr-1" />
-              Oper
-            </FilterButton>
-            <FilterButton 
-              active={typeFilter === "support"} 
-              onClick={() => setTypeFilter("support")}
-              variant="secondary"
-            >
-              <Wrench className="w-3.5 h-3.5 mr-1" />
-              Supp
-            </FilterButton>
-          </div>
-        </AdaptiveContainer>
-      )}
+ 
+       <FilterBar
+         filters={filterConfigs}
+         searchPlaceholder="Search by name or code..."
+         values={filterValues}
+         searchValue={searchValue}
+         onFilterChange={handleFilterChange}
+         onSearchChange={setSearchValue}
+         onClearAll={handleClearAll}
+       />
 
       <AdaptiveContainer className="py-4">
         {filteredProcesses.length === 0 ? (
@@ -178,34 +185,6 @@ export default function ProcessList() {
         onOpenChange={setShowCreateDialog} 
       />
     </div>
-  );
-}
-
-function FilterButton({ 
-  children, 
-  active, 
-  onClick,
-  variant = "primary"
-}: { 
-  children: React.ReactNode; 
-  active: boolean; 
-  onClick: () => void;
-  variant?: "primary" | "secondary";
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-3 py-1.5 text-sm font-medium rounded-full transition-colors flex items-center whitespace-nowrap",
-        active 
-          ? variant === "primary" 
-            ? "bg-primary text-primary-foreground" 
-            : "bg-muted-foreground text-background"
-          : "text-muted-foreground hover:bg-muted"
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

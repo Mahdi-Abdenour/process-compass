@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, TrendingUp, ArrowRight, Filter } from "lucide-react";
+ import { useState, useMemo, useCallback } from "react";
+ import { useNavigate, useSearchParams } from "react-router-dom";
+ import { AlertTriangle } from "lucide-react";
+ import { FilterBar, FilterConfig } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AdaptiveContainer } from "@/components/layout/AdaptiveContainer";
 import { AdaptiveGrid } from "@/components/layout/AdaptiveGrid";
@@ -8,7 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Fab } from "@/components/ui/fab";
 import { useManagementSystem } from "@/context/ManagementSystemContext";
 import { cn } from "@/lib/utils";
-import { IssueType, SwotQuadrant } from "@/types/management-system";
+ import { SwotQuadrant } from "@/types/management-system";
 
 const quadrantConfig: Record<SwotQuadrant, { label: string; color: string; bgColor: string }> = {
   strength: { label: "Strength", color: "text-swot-strength", bgColor: "bg-swot-strength/10" },
@@ -17,22 +18,74 @@ const quadrantConfig: Record<SwotQuadrant, { label: string; color: string; bgCol
   threat: { label: "Threat", color: "text-swot-threat", bgColor: "bg-swot-threat/10" },
 };
 
-export default function IssueList() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { issues, processes } = useManagementSystem();
-  
-  const processFilter = searchParams.get("process");
-  const typeFilter = searchParams.get("type") as IssueType | null;
-  
-  const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
-  const [selectedProcess, setSelectedProcess] = useState<string | "all">(processFilter || "all");
-
-  const filteredIssues = issues.filter((issue) => {
-    if (selectedProcess !== "all" && issue.processId !== selectedProcess) return false;
-    if (typeFilter && issue.type !== typeFilter) return false;
-    return true;
-  });
+ export default function IssueList() {
+   const navigate = useNavigate();
+   const [searchParams, setSearchParams] = useSearchParams();
+   const { issues, processes } = useManagementSystem();
+   
+   const typeParam = searchParams.get("type") || "all";
+   const processParam = searchParams.get("process") || "all";
+   
+   const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
+   const [filterValues, setFilterValues] = useState<Record<string, string>>({
+     type: typeParam,
+     process: processParam,
+     status: "all",
+   });
+   const [searchValue, setSearchValue] = useState("");
+ 
+   // Build filter configs
+   const filterConfigs: FilterConfig[] = useMemo(() => [
+     {
+       id: "type",
+       label: "Type",
+       options: [
+         { value: "all", label: "All" },
+         { value: "risk", label: "Risk" },
+         { value: "opportunity", label: "Opportunity" },
+       ],
+       defaultValue: "all",
+     },
+     {
+       id: "process",
+       label: "Process",
+       options: [
+         { value: "all", label: "All Processes" },
+         ...processes.filter(p => p.status !== "archived").map(p => ({
+           value: p.id,
+           label: p.code,
+         })),
+       ],
+       defaultValue: "all",
+     },
+   ], [processes]);
+ 
+   const handleFilterChange = useCallback((filterId: string, value: string) => {
+     setFilterValues(prev => ({ ...prev, [filterId]: value }));
+   }, []);
+ 
+   const handleClearAll = useCallback(() => {
+     setFilterValues({ type: "all", process: "all", status: "all" });
+     setSearchValue("");
+     setSearchParams({});
+   }, [setSearchParams]);
+ 
+   const filteredIssues = useMemo(() => {
+     return issues.filter((issue) => {
+       // Type filter
+       if (filterValues.type !== "all" && issue.type !== filterValues.type) return false;
+       // Process filter
+       if (filterValues.process !== "all" && issue.processId !== filterValues.process) return false;
+       // Search filter
+       if (searchValue) {
+         const query = searchValue.toLowerCase();
+         if (!issue.description.toLowerCase().includes(query) && !issue.code.toLowerCase().includes(query)) {
+           return false;
+         }
+       }
+       return true;
+     });
+   }, [issues, filterValues, searchValue]);
 
   const getProcessName = (processId: string) => {
     const process = processes.find(p => p.id === processId);
@@ -46,28 +99,16 @@ export default function IssueList() {
         subtitle="Risks, Opportunities & SWOT Analysis"
       />
 
-      {/* Process Filter */}
-      {processes.length > 0 && (
-        <AdaptiveContainer padding="default" className="py-3 border-b border-border">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-            <FilterChip
-              selected={selectedProcess === "all"}
-              onClick={() => setSelectedProcess("all")}
-            >
-              All Processes
-            </FilterChip>
-            {processes.filter(p => p.status !== "archived").map((process) => (
-              <FilterChip
-                key={process.id}
-                selected={selectedProcess === process.id}
-                onClick={() => setSelectedProcess(process.id)}
-              >
-                {process.code}
-              </FilterChip>
-            ))}
-          </div>
-        </AdaptiveContainer>
-      )}
+ 
+       <FilterBar
+         filters={filterConfigs}
+         searchPlaceholder="Search issues..."
+         values={filterValues}
+         searchValue={searchValue}
+         onFilterChange={handleFilterChange}
+         onSearchChange={setSearchValue}
+         onClearAll={handleClearAll}
+       />
 
       <AdaptiveContainer className="py-4 space-y-4">
         {/* View Toggle */}
@@ -94,7 +135,7 @@ export default function IssueList() {
             title="No issues identified"
             description="Context analysis helps identify internal and external factors affecting your management system."
             actionLabel="Add First Issue"
-            onAction={() => navigate(`/issues/new${selectedProcess !== "all" ? `?process=${selectedProcess}` : ""}`)}
+             onAction={() => navigate(`/issues/new${filterValues.process !== "all" ? `?process=${filterValues.process}` : ""}`)}
             helperText="Issues can be risks (threats, weaknesses) or opportunities (strengths, external opportunities)."
           />
         ) : viewMode === "list" ? (
@@ -160,34 +201,10 @@ export default function IssueList() {
       </AdaptiveContainer>
 
       <Fab 
-        onClick={() => navigate(`/issues/new${selectedProcess !== "all" ? `?process=${selectedProcess}` : ""}`)} 
+         onClick={() => navigate(`/issues/new${filterValues.process !== "all" ? `?process=${filterValues.process}` : ""}`)} 
         label="Add issue" 
       />
     </div>
-  );
-}
-
-function FilterChip({ 
-  children, 
-  selected, 
-  onClick 
-}: { 
-  children: React.ReactNode; 
-  selected: boolean; 
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors",
-        selected 
-          ? "bg-primary text-primary-foreground" 
-          : "bg-muted text-muted-foreground"
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
