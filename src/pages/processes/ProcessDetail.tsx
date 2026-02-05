@@ -1,4 +1,5 @@
-import { useParams, useNavigate } from "react-router-dom";
+ import { useParams, useNavigate } from "react-router-dom";
+ import { useScrollReset } from "@/hooks/useScrollReset";
 import { 
   AlertTriangle,
   CheckSquare,
@@ -30,7 +31,10 @@ export default function ProcessDetail() {
     getCurrentKPIValue 
   } = useManagementSystem();
   
-  const process = id ? getProcessById(id) : undefined;
+   const process = id ? getProcessById(id) : undefined;
+ 
+   // Reset scroll position to top when opening detail view
+   useScrollReset();
 
   if (!process) {
     return (

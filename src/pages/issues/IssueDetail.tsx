@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+ import { useState } from "react";
+ import { useParams, useNavigate } from "react-router-dom";
+ import { useScrollReset } from "@/hooks/useScrollReset";
 import { Edit, AlertTriangle, History, CheckCircle, XCircle, Shield, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -48,7 +49,10 @@ export default function IssueDetail() {
   const [residualDescription, setResidualDescription] = useState("");
   const [residualNotes, setResidualNotes] = useState("");
 
-  const issue = issues.find(i => i.id === id);
+   const issue = issues.find(i => i.id === id);
+ 
+   // Reset scroll position to top when opening detail view
+   useScrollReset();
 
   if (!issue) {
     return (
